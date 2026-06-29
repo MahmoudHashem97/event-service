@@ -11,6 +11,8 @@ public class EventResponse
     private String name;
     private String description;
     private String state;
+    private Integer initialAvailability;
+    private Integer currentAvailability;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

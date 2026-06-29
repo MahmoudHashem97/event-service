@@ -13,6 +13,8 @@ public interface EventMapper
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "state", constant = "DRAFT")
+    @Mapping(target = "initialAvailability", source = "availability")
+    @Mapping(target = "currentAvailability", source = "availability")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Event toEntity(EventRequest request);
@@ -25,6 +27,8 @@ public interface EventMapper
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "state", ignore = true)
+    @Mapping(target = "initialAvailability", source = "availability")
+    @Mapping(target = "currentAvailability", source = "availability")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntity(EventRequest request, @MappingTarget Event event);

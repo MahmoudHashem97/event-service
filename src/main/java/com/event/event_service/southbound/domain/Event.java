@@ -27,6 +27,12 @@ public class Event
     @Column(nullable = false)
     private EventStatus state;
 
+    @Column(nullable = false)
+    private Integer initialAvailability;
+
+    @Column(nullable = false)
+    private Integer currentAvailability;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
