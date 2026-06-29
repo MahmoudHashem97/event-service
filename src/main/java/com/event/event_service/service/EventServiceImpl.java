@@ -1,0 +1,84 @@
+package com.event.event_service.service;
+
+import com.event.event_service.dto.EventRequest;
+import com.event.event_service.dto.EventResponse;
+import com.event.event_service.exception.BusinessException;
+import com.event.event_service.southbound.domain.Event;
+import com.event.event_service.southbound.domain.EventStatus;
+import com.event.event_service.southbound.mapper.EventMapper;
+import com.event.event_service.southbound.repository.EventRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class EventServiceImpl implements EventService
+{
+
+    private final EventRepository eventRepository;
+    private final EventMapper eventMapper;
+
+    @Override
+    public EventResponse create(EventRequest request)
+    {
+        Event event = eventMapper.toEntity(request);
+        return eventMapper.toResponse(eventRepository.save(event));
+    }
+
+    @Override
+    public List<EventResponse> findAll()
+    {
+        return eventMapper.toResponse(eventRepository.findAll());
+    }
+
+    @Override
+    public EventResponse findById(Long id)
+    {
+        return eventMapper.toResponse(getEvent(id));
+    }
+
+    @Override
+    public EventResponse update(Long id, EventRequest request)
+    {
+        Event event = getEvent(id);
+        eventMapper.updateEntity(request, event);
+        return eventMapper.toResponse(event);
+    }
+
+    @Override
+    public EventResponse updateStatus(Long id, String state)
+    {
+        Event event = getEvent(id);
+        EventStatus nextState = EventStatus.valueOf(state);
+
+        if (!canMoveTo(event.getState(), nextState))
+        {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_EVENT_STATUS",
+                    "Event cannot move from " + event.getState().getCode() + " to " + nextState.getCode()
+            );
+        }
+
+        event.setState(nextState);
+        return eventMapper.toResponse(event);
+    }
+
+    private Event getEvent(Long id)
+    {
+        return eventRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "Event not found"));
+    }
+
+    private boolean canMoveTo(EventStatus current, EventStatus next)
+    {
+        if (current == next)
+        {
+            return true;
+        }
+
+        return (current == EventStatus.DRAFT && next == EventStatus.PUBLISHED)
+                || (current == EventStatus.PUBLISHED && next == EventStatus.CANCELLED);
+    }
+}

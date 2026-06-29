@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: event-service
+  datasource:
+    url: "jdbc:postgresql://localhost:5433/event_service?currentSchema=event"
+    username: postgres
+    password: postgres
+  jpa:
+    open-in-view: false
+    show-sql: false
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yml
+
+server:
+  port: 8081
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
