@@ -114,6 +114,6 @@ public class EventServiceImpl implements EventService
     private boolean isAvailableForReservation(Event event, Integer remainingAvailability)
     {
         return event.getState() == EventStatus.PUBLISHED
-                && remainingAvailability > 0;
+                && remainingAvailability >= 0;
     }
 }
