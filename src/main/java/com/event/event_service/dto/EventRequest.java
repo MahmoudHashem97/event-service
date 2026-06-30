@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 public class EventRequest
 {
@@ -13,6 +15,9 @@ public class EventRequest
 
     @NotBlank
     private String description;
+
+    @NotNull
+    private LocalDate eventDate;
 
     @NotNull
     @PositiveOrZero

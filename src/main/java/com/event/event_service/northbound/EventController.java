@@ -1,6 +1,8 @@
 package com.event.event_service.northbound;
 
 import com.event.event_service.dto.EventRequest;
+import com.event.event_service.dto.EventReservationRequest;
+import com.event.event_service.dto.EventReservationResponse;
 import com.event.event_service.dto.EventResponse;
 import com.event.event_service.dto.UpdateEventStatusRequest;
 import com.event.event_service.service.EventService;
@@ -43,5 +45,11 @@ public class EventController implements EventApi
     public EventResponse updateStatus(Long id, UpdateEventStatusRequest request)
     {
         return eventService.updateStatus(id, request.getState());
+    }
+
+    @Override
+    public EventReservationResponse reserveSeats(EventReservationRequest request)
+    {
+        return eventService.reserveSeats(request);
     }
 }

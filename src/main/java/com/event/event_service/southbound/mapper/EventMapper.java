@@ -1,6 +1,7 @@
 package com.event.event_service.southbound.mapper;
 
 import com.event.event_service.dto.EventRequest;
+import com.event.event_service.dto.EventReservationResponse;
 import com.event.event_service.dto.EventResponse;
 import com.event.event_service.southbound.domain.Event;
 import org.mapstruct.*;
@@ -21,6 +22,10 @@ public interface EventMapper
 
     @Mapping(target = "state", expression = "java(event.getState().getCode())")
     EventResponse toResponse(Event event);
+
+    @Mapping(target = "eventId", source = "id")
+    @Mapping(target = "eventName", source = "name")
+    EventReservationResponse toReservationResponse(Event event);
 
     List<EventResponse> toResponse(List<Event> events);
 

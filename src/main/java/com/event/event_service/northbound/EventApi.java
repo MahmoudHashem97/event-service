@@ -1,6 +1,8 @@
 package com.event.event_service.northbound;
 
 import com.event.event_service.dto.EventRequest;
+import com.event.event_service.dto.EventReservationRequest;
+import com.event.event_service.dto.EventReservationResponse;
 import com.event.event_service.dto.EventResponse;
 import com.event.event_service.dto.UpdateEventStatusRequest;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,4 +40,7 @@ public interface EventApi
 
     @PatchMapping("/{id}/status")
     EventResponse updateStatus(@PathVariable Long id, @Valid @RequestBody UpdateEventStatusRequest request);
+
+    @PostMapping("/reserve")
+    EventReservationResponse reserveSeats(@Valid @RequestBody EventReservationRequest request);
 }

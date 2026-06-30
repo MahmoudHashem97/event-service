@@ -1,6 +1,8 @@
 package com.event.event_service.service;
 
 import com.event.event_service.dto.EventRequest;
+import com.event.event_service.dto.EventReservationRequest;
+import com.event.event_service.dto.EventReservationResponse;
 import com.event.event_service.dto.EventResponse;
 import com.event.event_service.exception.BusinessException;
 import com.event.event_service.southbound.domain.Event;
@@ -10,11 +12,13 @@ import com.event.event_service.southbound.repository.EventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class EventServiceImpl implements EventService
 {
 
@@ -22,6 +26,7 @@ public class EventServiceImpl implements EventService
     private final EventMapper eventMapper;
 
     @Override
+    @Transactional
     public EventResponse create(EventRequest request)
     {
         Event event = eventMapper.toEntity(request);
@@ -41,6 +46,7 @@ public class EventServiceImpl implements EventService
     }
 
     @Override
+    @Transactional
     public EventResponse update(Long id, EventRequest request)
     {
         Event event = getEvent(id);
@@ -49,6 +55,7 @@ public class EventServiceImpl implements EventService
     }
 
     @Override
+    @Transactional
     public EventResponse updateStatus(Long id, String state)
     {
         Event event = getEvent(id);
@@ -63,6 +70,28 @@ public class EventServiceImpl implements EventService
 
         event.setState(nextState);
         return eventMapper.toResponse(event);
+    }
+
+    @Override
+    @Transactional
+    public EventReservationResponse reserveSeats(EventReservationRequest request)
+    {
+        Event event = getEvent(request.getEventId());
+
+        int remainingAvailability = event.getCurrentAvailability() - request.getNoOfSeats();
+
+        if (!isAvailableForReservation(event, remainingAvailability))
+        {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "EVENT_NOT_AVAILABLE",
+                    "event not available right now");
+        }
+
+        event.setCurrentAvailability(remainingAvailability);
+        eventRepository.save(event);
+
+        return eventMapper.toReservationResponse(event);
     }
 
     private Event getEvent(Long id)
@@ -80,5 +109,11 @@ public class EventServiceImpl implements EventService
 
         return (current == EventStatus.DRAFT && next == EventStatus.PUBLISHED)
                 || (current == EventStatus.PUBLISHED && next == EventStatus.CANCELLED);
+    }
+
+    private boolean isAvailableForReservation(Event event, Integer remainingAvailability)
+    {
+        return event.getState() == EventStatus.PUBLISHED
+                && remainingAvailability > 0;
     }
 }

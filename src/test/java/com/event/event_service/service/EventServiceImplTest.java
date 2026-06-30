@@ -1,6 +1,8 @@
 package com.event.event_service.service;
 
 import com.event.event_service.dto.EventRequest;
+import com.event.event_service.dto.EventReservationRequest;
+import com.event.event_service.dto.EventReservationResponse;
 import com.event.event_service.dto.EventResponse;
 import com.event.event_service.exception.BusinessException;
 import com.event.event_service.southbound.domain.Event;
@@ -13,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +26,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class EventServiceImplTest
 {
+    private static final LocalDate EVENT_DATE = LocalDate.of(2026, 7, 15);
+
     @Mock
     private EventRepository eventRepository;
 
@@ -154,13 +159,125 @@ class EventServiceImplTest
         verifyNoInteractions(eventMapper);
     }
 
+    @Test
+    void reserveSeatsShouldDecreaseAvailabilityAndReturnReservationResponse()
+    {
+        Long id = 41L;
+        EventReservationRequest request = buildReservationRequest(id, 3);
+        Event event = buildEvent(id, 10, 7);
+        event.setState(EventStatus.PUBLISHED);
+        EventReservationResponse response = buildReservationResponse(event);
+
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        when(eventRepository.save(event)).thenReturn(event);
+        when(eventMapper.toReservationResponse(event)).thenReturn(response);
+
+        EventReservationResponse result = eventService.reserveSeats(request);
+
+        assertEquals(4, event.getCurrentAvailability());
+        assertEquals(response, result);
+        verify(eventRepository).findById(id);
+        verify(eventRepository).save(event);
+        verify(eventMapper).toReservationResponse(event);
+    }
+
+    @Test
+    void reserveSeatsShouldThrowWhenEventNotFound()
+    {
+        Long id = 404L;
+        EventReservationRequest request = buildReservationRequest(id, 1);
+
+        when(eventRepository.findById(id)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> eventService.reserveSeats(request));
+
+        assertEquals("EVENT_NOT_FOUND", exception.getErrorCode());
+        verify(eventRepository).findById(id);
+        verify(eventRepository, never()).save(any());
+    }
+
+    @Test
+    void reserveSeatsShouldThrowWhenSeatsAreNotAvailable()
+    {
+        Long id = 42L;
+        EventReservationRequest request = buildReservationRequest(id, 8);
+        Event event = buildEvent(id, 10, 7);
+        event.setState(EventStatus.PUBLISHED);
+
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> eventService.reserveSeats(request));
+
+        assertEquals("EVENT_NOT_AVAILABLE", exception.getErrorCode());
+        assertEquals(7, event.getCurrentAvailability());
+        verify(eventRepository).findById(id);
+        verify(eventRepository, never()).save(any());
+    }
+
+    @Test
+    void reserveSeatsShouldThrowWhenRemainingAvailabilityIsNotPositive()
+    {
+        Long id = 44L;
+        EventReservationRequest request = buildReservationRequest(id, 7);
+        Event event = buildEvent(id, 10, 7);
+        event.setState(EventStatus.PUBLISHED);
+
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> eventService.reserveSeats(request));
+
+        assertEquals("EVENT_NOT_AVAILABLE", exception.getErrorCode());
+        assertEquals(7, event.getCurrentAvailability());
+        verify(eventRepository).findById(id);
+        verify(eventRepository, never()).save(any());
+    }
+
+    @Test
+    void reserveSeatsShouldThrowWhenEventIsNotPublished()
+    {
+        Long id = 43L;
+        EventReservationRequest request = buildReservationRequest(id, 1);
+        Event event = buildEvent(id, 10, 7);
+
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> eventService.reserveSeats(request));
+
+        assertEquals("EVENT_NOT_AVAILABLE", exception.getErrorCode());
+        assertEquals(7, event.getCurrentAvailability());
+        verify(eventRepository).findById(id);
+        verify(eventRepository, never()).save(any());
+    }
+
     private EventRequest buildRequest()
     {
         EventRequest request = new EventRequest();
         request.setName("Cairo night");
         request.setDescription("Cairo night");
+        request.setEventDate(EVENT_DATE);
         request.setAvailability(300);
         return request;
+    }
+
+    private EventReservationRequest buildReservationRequest(Long eventId, Integer noOfSeats)
+    {
+        EventReservationRequest request = new EventReservationRequest();
+        request.setEventId(eventId);
+        request.setNoOfSeats(noOfSeats);
+        return request;
+    }
+
+    private EventReservationResponse buildReservationResponse(Event event)
+    {
+        EventReservationResponse response = new EventReservationResponse();
+        response.setEventId(event.getId());
+        response.setEventName(event.getName());
+        response.setEventDate(event.getEventDate());
+        return response;
     }
 
     private Event buildEvent(
@@ -173,6 +290,7 @@ class EventServiceImplTest
         event.setId(id);
         event.setName("Cairo night");
         event.setDescription("Cairo night");
+        event.setEventDate(EVENT_DATE);
         event.setState(EventStatus.DRAFT);
         event.setInitialAvailability(initialAvailability);
         event.setCurrentAvailability(currentAvailability);
@@ -189,6 +307,7 @@ class EventServiceImplTest
         EventResponse response = new EventResponse();
         response.setId(id);
         response.setName("Cairo night");
+        response.setEventDate(EVENT_DATE);
         response.setState(state.getCode());
         response.setInitialAvailability(initialAvailability);
         response.setCurrentAvailability(currentAvailability);

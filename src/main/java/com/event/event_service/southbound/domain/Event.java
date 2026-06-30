@@ -5,6 +5,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,6 +23,9 @@ public class Event
 
     @Column
     private String description;
+
+    @Column(nullable = false)
+    private LocalDate eventDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
