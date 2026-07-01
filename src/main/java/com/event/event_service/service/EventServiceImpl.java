@@ -127,7 +127,6 @@ public class EventServiceImpl implements EventService
         }
 
         return (current == EventStatus.DRAFT && next == EventStatus.PUBLISHED)
-                || (current == EventStatus.DRAFT && next == EventStatus.CANCELLED)
                 || (current == EventStatus.PUBLISHED && next == EventStatus.CANCELLED);
     }
 
