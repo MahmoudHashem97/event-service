@@ -76,6 +76,58 @@ class EventServiceImplTest
     }
 
     @Test
+    void updateShouldPreserveBookedSeats()
+    {
+        Long id = 8L;
+        EventRequest request = buildRequest();
+        request.setAvailability(30);
+        Event event = buildEvent(id, 20, 12);
+        EventResponse response = buildResponse(id, EventStatus.DRAFT, 30, 22);
+
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        doAnswer(invocation -> {
+            EventRequest updateRequest = invocation.getArgument(0);
+            Event eventToUpdate = invocation.getArgument(1);
+            eventToUpdate.setName(updateRequest.getName());
+            eventToUpdate.setDescription(updateRequest.getDescription());
+            eventToUpdate.setEventDate(updateRequest.getEventDate());
+            eventToUpdate.setInitialAvailability(updateRequest.getAvailability());
+            eventToUpdate.setCurrentAvailability(updateRequest.getAvailability());
+            return null;
+        }).when(eventMapper).updateEntity(request, event);
+        when(eventMapper.toResponse(event)).thenReturn(response);
+
+        EventResponse result = eventService.update(id, request);
+
+        assertEquals(30, event.getInitialAvailability());
+        assertEquals(22, event.getCurrentAvailability());
+        assertEquals(response, result);
+        verify(eventRepository).findById(id);
+        verify(eventMapper).updateEntity(request, event);
+        verify(eventMapper).toResponse(event);
+    }
+
+    @Test
+    void updateShouldThrowWhenAvailabilityIsLowerThanBookedSeats()
+    {
+        Long id = 9L;
+        EventRequest request = buildRequest();
+        request.setAvailability(7);
+        Event event = buildEvent(id, 20, 12);
+
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> eventService.update(id, request));
+
+        assertEquals("INVALID_EVENT_AVAILABILITY", exception.getErrorCode());
+        assertEquals(20, event.getInitialAvailability());
+        assertEquals(12, event.getCurrentAvailability());
+        verify(eventRepository).findById(id);
+        verifyNoInteractions(eventMapper);
+    }
+
+    @Test
     void findAllShouldReturnEvents()
     {
         Event event = buildEvent(3L, 14, 14);
@@ -143,20 +195,21 @@ class EventServiceImplTest
     }
 
     @Test
-    void updateStatusShouldThrowWhenStatusOrderIsWrong()
+    void updateStatusShouldReturnCancelledDraftEvent()
     {
         Long id = 31L;
         Event event = buildEvent(id, 11, 11);
+        EventResponse response = buildResponse(id, EventStatus.CANCELLED, 11, 11);
 
         when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        when(eventMapper.toResponse(event)).thenReturn(response);
 
-        BusinessException exception = assertThrows(BusinessException.class,
-                () -> eventService.updateStatus(id, "CANCELLED"));
+        EventResponse result = eventService.updateStatus(id, "CANCELLED");
 
-        assertEquals("INVALID_EVENT_STATUS", exception.getErrorCode());
-        assertEquals(EventStatus.DRAFT, event.getState());
+        assertEquals(EventStatus.CANCELLED, event.getState());
+        assertEquals(response, result);
         verify(eventRepository).findById(id);
-        verifyNoInteractions(eventMapper);
+        verify(eventMapper).toResponse(event);
     }
 
     @Test
@@ -220,7 +273,7 @@ class EventServiceImplTest
     void reserveSeatsShouldThrowWhenRemainingAvailabilityIsNotPositive()
     {
         Long id = 44L;
-        EventReservationRequest request = buildReservationRequest(id, 7);
+        EventReservationRequest request = buildReservationRequest(id, 8);
         Event event = buildEvent(id, 10, 7);
         event.setState(EventStatus.PUBLISHED);
 

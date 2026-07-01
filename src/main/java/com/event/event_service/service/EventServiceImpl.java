@@ -50,7 +50,18 @@ public class EventServiceImpl implements EventService
     public EventResponse update(Long id, EventRequest request)
     {
         Event event = getEvent(id);
+        int bookedSeats = Math.max(0, event.getInitialAvailability() - event.getCurrentAvailability());
+
+        if (request.getAvailability() < bookedSeats)
+        {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_EVENT_AVAILABILITY",
+                    "Event availability cannot be lower than already booked seats");
+        }
+
         eventMapper.updateEntity(request, event);
+        event.setCurrentAvailability(request.getAvailability() - bookedSeats);
         return eventMapper.toResponse(event);
     }
 
@@ -108,6 +119,7 @@ public class EventServiceImpl implements EventService
         }
 
         return (current == EventStatus.DRAFT && next == EventStatus.PUBLISHED)
+                || (current == EventStatus.DRAFT && next == EventStatus.CANCELLED)
                 || (current == EventStatus.PUBLISHED && next == EventStatus.CANCELLED);
     }
 
