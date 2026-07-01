@@ -5,6 +5,7 @@ import com.event.event_service.dto.EventReservationRequest;
 import com.event.event_service.dto.EventReservationResponse;
 import com.event.event_service.dto.EventResponse;
 import com.event.event_service.exception.BusinessException;
+import com.event.event_service.southbound.client.BookingClient;
 import com.event.event_service.southbound.domain.Event;
 import com.event.event_service.southbound.domain.EventStatus;
 import com.event.event_service.southbound.mapper.EventMapper;
@@ -33,6 +34,9 @@ class EventServiceImplTest
 
     @Mock
     private EventMapper eventMapper;
+
+    @Mock
+    private BookingClient bookingClient;
 
     @InjectMocks
     private EventServiceImpl eventService;
@@ -85,7 +89,8 @@ class EventServiceImplTest
         EventResponse response = buildResponse(id, EventStatus.DRAFT, 30, 22);
 
         when(eventRepository.findById(id)).thenReturn(Optional.of(event));
-        doAnswer(invocation -> {
+        doAnswer(invocation ->
+        {
             EventRequest updateRequest = invocation.getArgument(0);
             Event eventToUpdate = invocation.getArgument(1);
             eventToUpdate.setName(updateRequest.getName());
@@ -192,6 +197,7 @@ class EventServiceImplTest
         assertEquals(response, result);
         verify(eventRepository).findById(id);
         verify(eventMapper).toResponse(event);
+        verifyNoInteractions(bookingClient);
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.event.event_service.dto.EventReservationRequest;
 import com.event.event_service.dto.EventReservationResponse;
 import com.event.event_service.dto.EventResponse;
 import com.event.event_service.exception.BusinessException;
+import com.event.event_service.southbound.client.BookingClient;
 import com.event.event_service.southbound.domain.Event;
 import com.event.event_service.southbound.domain.EventStatus;
 import com.event.event_service.southbound.mapper.EventMapper;
@@ -24,6 +25,7 @@ public class EventServiceImpl implements EventService
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
+    private final BookingClient bookingClient;
 
     @Override
     @Transactional
@@ -77,6 +79,12 @@ public class EventServiceImpl implements EventService
             throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_EVENT_STATUS",
                     "Event cannot move from " + event.getState().getCode() + " to " + nextState.getCode()
             );
+        }
+
+        if (nextState == EventStatus.CANCELLED
+                && !event.getCurrentAvailability().equals(event.getInitialAvailability()))
+        {
+            bookingClient.deleteByEventId(event.getId());
         }
 
         event.setState(nextState);
